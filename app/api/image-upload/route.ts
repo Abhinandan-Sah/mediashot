@@ -4,9 +4,9 @@ import { NextResponse, NextRequest } from "next/server";
 
 // Configuration
 cloudinary.config({
-  cloud_name: "dl4rdt9w0",
-  api_key: "472512663971277",
-  api_secret: "<your_api_secret>", // Click 'View API Keys' above to copy your API secret
+  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET, // Click 'View API Keys' above to copy your API secret
 });
 
 interface CloudinaryUploadResult {
@@ -32,18 +32,21 @@ export async function POST(request: NextRequest){
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
-        await new Promise<CloudinaryUploadResult>(
+        const result = await new Promise<CloudinaryUploadResult>(
             (resolve, reject)=>{
-                cloudinary.uploader.upload_stream(
+               const uploadStream = cloudinary.uploader.upload_stream(
                     {folder: "next-cloudinary-uploads"},
                     (error, result) => {
                         if(error) reject(error);
                         else resolve(result as CloudinaryUploadResult);
                     }
                 )
+                uploadStream.end(buffer);
             }
         )
+        return NextResponse.json({publicId: result.public_id}, {status: 200});
     }catch(error){
-
+        console.log("Upload image failed", error);
+        return NextResponse.json({error: "Upload image failed"}, {status: 500});
     }
 };
